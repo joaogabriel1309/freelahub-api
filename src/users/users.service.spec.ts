@@ -38,11 +38,11 @@ describe('UsersService', () => {
     jest.clearAllMocks();
   });
 
-  it('deve criar um novo usuário', () => {
+  it('deve criar um novo usuário', async () => {
     const dto = {
       nome: 'John Doe',
       email: 'n7PnI@example.com',
-      senha: 'password123',
+      senha: '123456',
       papel: PapelUsuario.CLIENTE,
     };
 
@@ -57,11 +57,14 @@ describe('UsersService', () => {
 
     prismaMock.usuario.create.mockResolvedValue(usuarioCriado);
 
-    const resultado = service.create(dto);
+    const resultado = await service.create(dto);
 
-    expect(resultado).resolves.toEqual(usuarioCriado);
+    expect(resultado).toEqual(usuarioCriado);
     expect(prismaMock.usuario.create).toHaveBeenCalledWith({
-      data: dto,
+      data: {
+        ...dto,
+        senha: expect.any(String),
+      },
       select: {
         id: true,
         nome: true,

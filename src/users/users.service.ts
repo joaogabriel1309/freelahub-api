@@ -3,6 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const usuarioSelect = {
   id: true,
@@ -19,9 +20,14 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(createUserDto.senha, 10);
+
     try {
       return await this.prisma.usuario.create({
-        data: createUserDto,
+        data: {
+          ...createUserDto,
+          senha: hashedPassword,
+        },
         select: usuarioSelect,
       });
     } catch (error) {
