@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PapelUsuario {
+  CLIENTE
+  FREELANCER
+  ADMIN
+}
+
+enum StatusProjeto {
+  ABERTO
+  EM_ANDAMENTO
+  FINALIZADO
+  CANCELADO
+}
+
+enum StatusProposta {
+  PENDENTE
+  ACEITA
+  RECUSADA
+  CANCELADA
+}
+
+enum StatusContrato {
+  ATIVO
+  FINALIZADO
+  CANCELADO
+  DISPUTA
+}
+
+enum StatusNotificacao {
+  NAO_LIDA
+  LIDA
+}
+
+enum StatusDenuncia {
+  ABERTA
+  EM_ANALISE
+  RESOLVIDA
+  REJEITADA
+}
+
+model Usuario {
+  id                 String        @id @default(uuid())
+  nome               String
+  email              String        @unique
+  senha              String
+  papel              PapelUsuario  @default(CLIENTE)
+  criadoEm           DateTime      @default(now())
+  atualizadoEm       DateTime      @updatedAt
+  cliente            Cliente?
+  freelancer         Freelancer?
+  mensagensEnviadas  Mensagem[]    @relation("MensagemRemetente")
+  mensagensRecebidas Mensagem[]    @relation("MensagemDestinatario")
+  notificacoes       Notificacao[]
+  denunciasCriadas   Denuncia[]    @relation("DenunciaAutor")
+  denunciasRecebidas Denuncia[]    @relation("DenunciaDenunciado")
+}
+
+model Cliente {
+  id           String      @id @default(uuid())
+  usuarioId    String      @unique
+  documento    String?
+  empresa      String?
+  telefone     String?
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+  usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  projetos     Projeto[]
+  contratos    Contrato[]
+  avaliacoes   Avaliacao[] @relation("AvaliacoesCliente")
+}
+
+model Freelancer {
+  id           String                 @id @default(uuid())
+  usuarioId    String                 @unique
+  titulo       String?
+  biografia    String?
+  valorHora    Decimal?               @db.Decimal(10, 2)
+  telefone     String?
+  criadoEm     DateTime               @default(now())
+  atualizadoEm DateTime               @updatedAt
+  usuario      Usuario                @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  propostas    Proposta[]
+  contratos    Contrato[]
+  avaliacoes   Avaliacao[]            @relation("AvaliacoesFreelancer")
+  habilidades  FreelancerHabilidade[]
+}
+
+model Habilidade {
+  id          String                 @id @default(uuid())
+  nome        String                 @unique
+  criadoEm    DateTime               @default(now())
+  freelancers FreelancerHabilidade[]
+}
+
+model FreelancerHabilidade {
+  freelancerId String
+  habilidadeId String
+  freelancer   Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  habilidade   Habilidade @relation(fields: [habilidadeId], references: [id], onDelete: Cascade)
+
+  @@id([freelancerId, habilidadeId])
+}
+
+model Projeto {
+  id           String        @id @default(uuid())
+  clienteId    String
+  titulo       String
+  descricao    String
+  orcamento    Decimal?      @db.Decimal(10, 2)
+  status       StatusProjeto @default(ABERTO)
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
+  cliente      Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  propostas    Proposta[]
+  contratos    Contrato[]
+  arquivos     Arquivo[]
+}
+
+model Proposta {
+  id           String         @id @default(uuid())
+  projetoId    String
+  freelancerId String
+  valor        Decimal        @db.Decimal(10, 2)
+  prazoDias    Int?
+  mensagem     String?
+  status       StatusProposta @default(PENDENTE)
+  criadoEm     DateTime       @default(now())
+  atualizadoEm DateTime       @updatedAt
+  projeto      Projeto        @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  freelancer   Freelancer     @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  contrato     Contrato?
+}
+
+model Contrato {
+  id           String         @id @default(uuid())
+  projetoId    String
+  propostaId   String         @unique
+  clienteId    String
+  freelancerId String
+  status       StatusContrato @default(ATIVO)
+  iniciadoEm   DateTime       @default(now())
+  finalizadoEm DateTime?
+  criadoEm     DateTime       @default(now())
+  atualizadoEm DateTime       @updatedAt
+  projeto      Projeto        @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  proposta     Proposta       @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+  cliente      Cliente        @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  freelancer   Freelancer     @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  mensagens    Mensagem[]
+  avaliacoes   Avaliacao[]
+  arquivos     Arquivo[]
+}
+
+model Mensagem {
+  id             String    @id @default(uuid())
+  contratoId     String?
+  remetenteId    String
+  destinatarioId String
+  conteudo       String
+  lidaEm         DateTime?
+  criadaEm       DateTime  @default(now())
+  contrato       Contrato? @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  remetente      Usuario   @relation("MensagemRemetente", fields: [remetenteId], references: [id], onDelete: Cascade)
+  destinatario   Usuario   @relation("MensagemDestinatario", fields: [destinatarioId], references: [id], onDelete: Cascade)
+}
+
+model Notificacao {
+  id        String            @id @default(uuid())
+  usuarioId String
+  titulo    String
+  conteudo  String
+  status    StatusNotificacao @default(NAO_LIDA)
+  criadaEm  DateTime          @default(now())
+  usuario   Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+}
+
+model Avaliacao {
+  id           String      @id @default(uuid())
+  contratoId   String
+  clienteId    String?
+  freelancerId String?
+  nota         Int
+  comentario   String?
+  criadaEm     DateTime    @default(now())
+  contrato     Contrato    @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  cliente      Cliente?    @relation("AvaliacoesCliente", fields: [clienteId], references: [id], onDelete: Cascade)
+  freelancer   Freelancer? @relation("AvaliacoesFreelancer", fields: [freelancerId], references: [id], onDelete: Cascade)
+}
+
+model Denuncia {
+  id           String         @id @default(uuid())
+  autorId      String
+  denunciadoId String
+  motivo       String
+  descricao    String?
+  status       StatusDenuncia @default(ABERTA)
+  criadaEm     DateTime       @default(now())
+  atualizadaEm DateTime       @updatedAt
+  autor        Usuario        @relation("DenunciaAutor", fields: [autorId], references: [id], onDelete: Cascade)
+  denunciado   Usuario        @relation("DenunciaDenunciado", fields: [denunciadoId], references: [id], onDelete: Cascade)
+}
+
+model Arquivo {
+  id         String    @id @default(uuid())
+  projetoId  String?
+  contratoId String?
+  nome       String
+  url        String
+  tipoMime   String?
+  tamanho    Int?
+  criadoEm   DateTime  @default(now())
+  projeto    Projeto?  @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  contrato   Contrato? @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+}
