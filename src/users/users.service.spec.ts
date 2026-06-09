@@ -3,6 +3,15 @@ import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PapelUsuario } from '@prisma/client';
 
+const selectUsuario = {
+  id: true,
+  nome: true,
+  email: true,
+  papel: true,
+  criadoEm: true,
+  atualizadoEm: true,
+};
+
 describe('UsersService', () => {
   let service: UsersService;
 
@@ -90,14 +99,7 @@ describe('UsersService', () => {
 
     expect(resultado).resolves.toEqual(usuarios);
     expect(prismaMock.usuario.findMany).toHaveBeenCalledWith({
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
-      },
+      select: selectUsuario,
     });
   });
 
@@ -118,14 +120,7 @@ describe('UsersService', () => {
     expect(resultado).toEqual(usuario);
     expect(prismaMock.usuario.findUnique).toHaveBeenCalledWith({
       where: { id: 'uuid' },
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
-      },
+      select: selectUsuario,
     });
   });
 
@@ -151,22 +146,33 @@ describe('UsersService', () => {
       atualizadoEm: new Date(),
     };
 
+    prismaMock.usuario.findUnique.mockResolvedValue(usuarioAtualizado);
     prismaMock.usuario.update.mockResolvedValue(usuarioAtualizado);
 
     const resultado = await service.update('uuid', dto);
 
     expect(resultado).toEqual(usuarioAtualizado);
+    expect(prismaMock.usuario.findUnique).toHaveBeenCalledWith({
+      where: { id: 'uuid' },
+      select: selectUsuario,
+    });
     expect(prismaMock.usuario.update).toHaveBeenCalledWith({
       where: { id: 'uuid' },
       data: dto,
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
-      },
+      select: selectUsuario,
+    });
+  });
+
+  it('deve lançar NotFoundException ao tentar atualizar um usuário inexistente', async () => {
+    prismaMock.usuario.findUnique.mockResolvedValue(null);
+
+    await expect(service.update('uuid', {})).rejects.toThrow(
+      'Usuário não encontrado',
+    );
+
+    expect(prismaMock.usuario.findUnique).toHaveBeenCalledWith({
+      where: { id: 'uuid' },
+      select: selectUsuario,
     });
   });
 
@@ -178,11 +184,16 @@ describe('UsersService', () => {
       papel: PapelUsuario.CLIENTE,
     };
 
+    prismaMock.usuario.findUnique.mockResolvedValue(usuarioRemovido);
     prismaMock.usuario.delete.mockResolvedValue(usuarioRemovido);
 
     const resultado = await service.remove('uuid');
 
     expect(resultado).toEqual(usuarioRemovido);
+    expect(prismaMock.usuario.findUnique).toHaveBeenCalledWith({
+      where: { id: 'uuid' },
+      select: selectUsuario,
+    });
     expect(prismaMock.usuario.delete).toHaveBeenCalledWith({
       where: { id: 'uuid' },
       select: {
@@ -190,8 +201,6 @@ describe('UsersService', () => {
         nome: true,
         email: true,
         papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
       },
     });
   });

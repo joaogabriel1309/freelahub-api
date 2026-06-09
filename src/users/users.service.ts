@@ -1,51 +1,51 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+
+const usuarioSelect = {
+  id: true,
+  nome: true,
+  email: true,
+  papel: true,
+  criadoEm: true,
+  atualizadoEm: true,
+}
 
 @Injectable()
 export class UsersService {
 
   constructor(private readonly prisma: PrismaService) { }
 
-  create(createUserDto: CreateUserDto) {
-    return this.prisma.usuario.create({
-      data: createUserDto,
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
+  async create(createUserDto: CreateUserDto) {
+    try {
+      return await this.prisma.usuario.create({
+        data: createUserDto,
+        select: usuarioSelect,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email ja cadastrado');
       }
-    });
+
+      throw error;
+    }
   }
 
-  findAll() {
-    return this.prisma.usuario.findMany({
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
-      }
+  async findAll() {
+    return await this.prisma.usuario.findMany({
+      select: usuarioSelect,
     });
   }
 
   async findOne(id: string) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id },
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
-      }
+      select: usuarioSelect,
     });
 
     if (!usuario) {
@@ -55,22 +55,30 @@ export class UsersService {
     return usuario;
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return this.prisma.usuario.update({
-      where: { id },
-      data: updateUserDto,
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    await this.findOne(id);
+
+    try {
+      return await this.prisma.usuario.update({
+        where: { id },
+        data: updateUserDto,
+        select: usuarioSelect,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email ja cadastrado');
       }
-    });
+
+      throw error;
+    }
   }
 
-  remove(id: string) {
+  async remove(id: string) {
+    await this.findOne(id);
+
     return this.prisma.usuario.delete({
       where: { id },
       select: {
@@ -78,9 +86,7 @@ export class UsersService {
         nome: true,
         email: true,
         papel: true,
-        criadoEm: true,
-        atualizadoEm: true,
-      }
+      },
     });
   }
 }
