@@ -15,9 +15,10 @@ import { DenunciasModule } from './denuncias/denuncias.module';
 import { ArquivosModule } from './arquivos/arquivos.module';
 import { HabilidadesModule } from './habilidades/habilidades.module';
 import { AdminModule } from './admin/admin.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [ClienteModule, ProjetoModule, PropostaModule, AuthModule, FreelancersModule, UsersModule, ContratosModule, MensagensModule, NotificacoesModule, AvaliacoesModule, DenunciasModule, ArquivosModule, HabilidadesModule, AdminModule],
+  imports: [ClienteModule, ProjetoModule, PropostaModule, AuthModule, FreelancersModule, UsersModule, ContratosModule, MensagensModule, NotificacoesModule, AvaliacoesModule, DenunciasModule, ArquivosModule, HabilidadesModule, AdminModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
