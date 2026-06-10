@@ -29,8 +29,8 @@ export class AuthService {
       throw new UnauthorizedException('Senha incorreta');
     }
 
-    const playload = { sub: usuario.id, email: usuario.email };
-    const token = await this.jwtService.sign(playload);
+    const payload = { sub: usuario.id, email: usuario.email, papel: usuario.papel };
+    const token = await this.jwtService.sign(payload);
 
     return {
       token

@@ -5,6 +5,7 @@ import type { StringValue } from 'ms';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -18,12 +19,13 @@ import { PrismaModule } from '../prisma/prisma.module';
           secret,
           signOptions: {
             expiresIn,
+            algorithm: 'HS256',
           },
         };
       },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
 })
 export class AuthModule { }
