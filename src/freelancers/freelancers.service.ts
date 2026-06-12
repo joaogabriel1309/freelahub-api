@@ -1,26 +1,65 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { CreateFreelancerDto } from './dto/create-freelancer.dto';
 import { UpdateFreelancerDto } from './dto/update-freelancer.dto';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class FreelancersService {
-  create(createFreelancerDto: CreateFreelancerDto) {
-    return 'This action adds a new freelancer';
+
+  constructor(private readonly prisma: PrismaService) { }
+
+  async create(usuarioId: string, createFreelancerDto: CreateFreelancerDto) {
+    try {
+      return await this.prisma.freelancer.create({
+        data: {
+          titulo: createFreelancerDto.titulo,
+          biografia: createFreelancerDto.biografia,
+          valorHora: createFreelancerDto.valorHora,
+          telefone: createFreelancerDto.telefone,
+          usuario: {
+            connect: {
+              id: usuarioId
+            }
+          }
+        }
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Freelancer já cadastrado para esse usuário');
+      }
+    }
   }
 
-  findAll() {
-    return `This action returns all freelancers`;
+  async findAll() {
+    return await this.prisma.freelancer.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} freelancer`;
+  async findOne(id: string) {
+    return await this.prisma.freelancer.findUnique({
+      where: {
+        id
+      }
+    })
   }
 
-  update(id: number, updateFreelancerDto: UpdateFreelancerDto) {
-    return `This action updates a #${id} freelancer`;
+  async update(id: string, updateFreelancerDto: UpdateFreelancerDto) {
+    return await this.prisma.freelancer.update({
+      where: {
+        id
+      },
+      data: updateFreelancerDto
+    })
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} freelancer`;
+  remove(id: string) {
+    return this.prisma.freelancer.delete({
+      where: {
+        id
+      }
+    })
   }
 }
